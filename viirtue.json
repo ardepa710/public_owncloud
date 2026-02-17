@@ -1,0 +1,1770 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Netsapiens NS-API v2",
+    "description": "Netsapiens NS-API v2 — plataforma UCaaS/VoIP REST API usada por Viirtue y otros resellers. Base URL: `https://{hostname}/ns-api/v2`.\n\n**Autenticación soportada:**\n- OAuth2 (Access Token vía usuario/contraseña)\n- API Key (Machine-to-Machine, header `Authorization: Bearer {apikey}`)\n- JWT (JSON Web Token)\n\nEl carácter `~` puede usarse como alias de \"mi\" recurso en rutas que aceptan `{domain}` o `{user}`.",
+    "version": "2.0.0",
+    "contact": {
+      "name": "Netsapiens Developer Docs",
+      "url": "https://docs.ns-api.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://{hostname}/ns-api/v2",
+      "description": "Servidor NS-API v2 del tenant",
+      "variables": {
+        "hostname": {
+          "default": "portal.viirtue.com",
+          "description": "Hostname del servidor Netsapiens (ej. portal.viirtue.com)"
+        }
+      }
+    }
+  ],
+  "security": [
+    { "BearerAuth": [] }
+  ],
+  "tags": [
+    { "name": "Authentication", "description": "Obtención y gestión de tokens de acceso, API Keys y JWTs" },
+    { "name": "Version", "description": "Versión del API" },
+    { "name": "Resellers", "description": "Gestión de resellers" },
+    { "name": "Domains", "description": "Gestión de dominios (tenants)" },
+    { "name": "Users", "description": "Gestión de usuarios dentro de un dominio" },
+    { "name": "Devices", "description": "Gestión de dispositivos SIP" },
+    { "name": "Phone Numbers", "description": "Gestión de números de teléfono (DIDs)" },
+    { "name": "Phones/MACs", "description": "Gestión de MACs y aprovisionamiento de teléfonos" },
+    { "name": "SnapBuilder", "description": "Plantillas de teléfono y perfiles de dispositivo" },
+    { "name": "Sites", "description": "Gestión de sitios dentro de un dominio" },
+    { "name": "Call Center", "description": "Call queues, agentes, estadísticas y llamadas en cola" },
+    { "name": "Answer Rules", "description": "Reglas de respuesta por usuario" },
+    { "name": "Call Blocking", "description": "Bloqueo de números por dominio o usuario" },
+    { "name": "Auto Attendant", "description": "Gestión de operadoras automáticas (IVR)" },
+    { "name": "Media", "description": "Voicemail, saludos, música en espera, mensajes en espera, TTS" },
+    { "name": "CDR", "description": "Registros detallados de llamadas (Call Detail Records)" },
+    { "name": "Calls", "description": "Llamadas activas/en vivo: crear, transferir, colgar, etc." },
+    { "name": "Messages", "description": "Chat, SMS, MMS y sesiones de mensajería" },
+    { "name": "SMS Numbers", "description": "Números habilitados para SMS" },
+    { "name": "Contacts", "description": "Contactos personales y compartidos del dominio" },
+    { "name": "Addresses", "description": "Gestión de direcciones E911" },
+    { "name": "Voicemail Reminders", "description": "Recordatorios de voicemail por usuario" },
+    { "name": "Dialrule", "description": "Reglas y planes de marcado" },
+    { "name": "Dial Permissions", "description": "Políticas y permisos de marcado" },
+    { "name": "Connections", "description": "Conexiones SIP (SIP trunks)" },
+    { "name": "Routes", "description": "Rutas y conexiones de ruta" },
+    { "name": "Recordings", "description": "Grabaciones de llamadas" },
+    { "name": "Email", "description": "Envío y validación de email via SMTP" },
+    { "name": "Meetings", "description": "Gestión de reuniones y videoconferencias" },
+    { "name": "Event Subscriptions", "description": "Webhooks y suscripciones a eventos" },
+    { "name": "Configs", "description": "Configuraciones del sistema NS" },
+    { "name": "Images", "description": "Gestión de imágenes" },
+    { "name": "Templates", "description": "Gestión de plantillas" },
+    { "name": "Timeframes", "description": "Marcos temporales para reglas de tiempo" },
+    { "name": "CDR Schedule", "description": "Programación de reportes CDR" },
+    { "name": "Call Traces", "description": "Trazas de llamadas (SIP flow) y Cradle-to-Grave" },
+    { "name": "Transcriptions", "description": "Transcripciones y análisis de sentimiento" },
+    { "name": "Backup & Restore", "description": "Backup y restauración de dominios" }
+  ],
+  "paths": {
+    "/oauth2/token": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Obtener Access Token (OAuth2 - Usuario/Contraseña)",
+        "operationId": "getAccessTokenUserPass",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["grant_type", "client_id", "client_secret", "username", "password"],
+                "properties": {
+                  "grant_type": { "type": "string", "enum": ["password"], "example": "password" },
+                  "client_id": { "type": "string" },
+                  "client_secret": { "type": "string" },
+                  "username": { "type": "string", "example": "user@domain.com" },
+                  "password": { "type": "string" },
+                  "scope": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token generado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OAuthToken" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth2/token/refresh": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Obtener Access Token desde Refresh Token",
+        "operationId": "getAccessTokenRefresh",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["grant_type", "refresh_token"],
+                "properties": {
+                  "grant_type": { "type": "string", "enum": ["refresh_token"] },
+                  "refresh_token": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token renovado",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OAuthToken" } } }
+          }
+        }
+      }
+    },
+    "/apikeys": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Leer API Keys bajo mi cuenta",
+        "operationId": "readApiKeys",
+        "responses": {
+          "200": {
+            "description": "Lista de API Keys",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/ApiKey" } } } }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Crear API Key",
+        "operationId": "createApiKey",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiKeyCreate" } } }
+        },
+        "responses": {
+          "201": { "description": "API Key creada", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiKey" } } } }
+        }
+      }
+    },
+    "/apikeys/{keyId}": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Leer info de API Key específica por ID",
+        "operationId": "readApiKeyById",
+        "parameters": [{ "$ref": "#/components/parameters/keyId" }],
+        "responses": { "200": { "description": "API Key", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiKey" } } } } }
+      },
+      "put": {
+        "tags": ["Authentication"],
+        "summary": "Actualizar API Key",
+        "operationId": "updateApiKey",
+        "parameters": [{ "$ref": "#/components/parameters/keyId" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiKeyCreate" } } } },
+        "responses": { "200": { "description": "API Key actualizada" } }
+      },
+      "delete": {
+        "tags": ["Authentication"],
+        "summary": "Revocar API Key",
+        "operationId": "revokeApiKey",
+        "parameters": [{ "$ref": "#/components/parameters/keyId" }],
+        "responses": { "204": { "description": "API Key revocada" } }
+      }
+    },
+    "/version": {
+      "get": {
+        "tags": ["Version"],
+        "summary": "Leer versión del API",
+        "operationId": "readApiVersion",
+        "responses": {
+          "200": {
+            "description": "Versión del API",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "version": { "type": "string", "example": "44.4.0" } } } } }
+          }
+        }
+      }
+    },
+    "/resellers": {
+      "get": {
+        "tags": ["Resellers"],
+        "summary": "Obtener Resellers",
+        "operationId": "getResellers",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/start" }
+        ],
+        "responses": { "200": { "description": "Lista de resellers", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Reseller" } } } } } }
+      },
+      "post": {
+        "tags": ["Resellers"],
+        "summary": "Crear Reseller",
+        "operationId": "createReseller",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ResellerCreate" } } } },
+        "responses": { "201": { "description": "Reseller creado" } }
+      }
+    },
+    "/resellers/count": {
+      "get": {
+        "tags": ["Resellers"],
+        "summary": "Contar Resellers",
+        "operationId": "countResellers",
+        "responses": { "200": { "description": "Conteo de resellers", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CountResponse" } } } } }
+      }
+    },
+    "/resellers/{reseller}": {
+      "get": {
+        "tags": ["Resellers"],
+        "summary": "Obtener Reseller específico",
+        "operationId": "getReseller",
+        "parameters": [{ "$ref": "#/components/parameters/reseller" }],
+        "responses": { "200": { "description": "Reseller", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Reseller" } } } } }
+      },
+      "put": {
+        "tags": ["Resellers"],
+        "summary": "Actualizar Reseller",
+        "operationId": "updateReseller",
+        "parameters": [{ "$ref": "#/components/parameters/reseller" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ResellerCreate" } } } },
+        "responses": { "200": { "description": "Reseller actualizado" } }
+      },
+      "delete": {
+        "tags": ["Resellers"],
+        "summary": "Eliminar Reseller",
+        "operationId": "deleteReseller",
+        "parameters": [{ "$ref": "#/components/parameters/reseller" }],
+        "responses": { "204": { "description": "Reseller eliminado" } }
+      }
+    },
+    "/domains": {
+      "get": {
+        "tags": ["Domains"],
+        "summary": "Obtener todos los dominios",
+        "operationId": "getDomains",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/start" },
+          { "name": "reseller", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Lista de dominios", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Domain" } } } } } }
+      },
+      "post": {
+        "tags": ["Domains"],
+        "summary": "Crear un dominio",
+        "operationId": "createDomain",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DomainCreate" } } } },
+        "responses": { "201": { "description": "Dominio creado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Domain" } } } } }
+      }
+    },
+    "/domains/count": {
+      "get": {
+        "tags": ["Domains"],
+        "summary": "Contar dominios",
+        "operationId": "countDomains",
+        "responses": { "200": { "description": "Conteo", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CountResponse" } } } } }
+      }
+    },
+    "/domains/{domain}": {
+      "get": {
+        "tags": ["Domains"],
+        "summary": "Obtener dominio específico",
+        "operationId": "getDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Dominio", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Domain" } } } } }
+      },
+      "put": {
+        "tags": ["Domains"],
+        "summary": "Actualizar dominio",
+        "operationId": "updateDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DomainCreate" } } } },
+        "responses": { "200": { "description": "Dominio actualizado" } }
+      },
+      "delete": {
+        "tags": ["Domains"],
+        "summary": "Eliminar dominio",
+        "operationId": "deleteDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "204": { "description": "Dominio eliminado" } }
+      }
+    },
+    "/domains/{domain}/exists": {
+      "get": {
+        "tags": ["Domains"],
+        "summary": "Verificar si el dominio existe",
+        "operationId": "checkDomainExists",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Resultado de verificación", "content": { "application/json": { "schema": { "type": "object", "properties": { "exists": { "type": "boolean" } } } } } } }
+      }
+    },
+    "/domains/{domain}/billing-summary": {
+      "get": {
+        "tags": ["Domains"],
+        "summary": "Obtener dominio con resumen de billing",
+        "operationId": "getDomainBillingSummary",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Dominio con billing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Domain" } } } } }
+      }
+    },
+    "/domains/{domain}/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Obtener usuarios en el dominio",
+        "operationId": "getUsersInDomain",
+        "parameters": [
+          { "$ref": "#/components/parameters/domain" },
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/start" }
+        ],
+        "responses": { "200": { "description": "Lista de usuarios", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/User" } } } } } }
+      },
+      "post": {
+        "tags": ["Users"],
+        "summary": "Crear usuario en el dominio",
+        "operationId": "createUserInDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserCreate" } } } },
+        "responses": { "201": { "description": "Usuario creado", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } } }
+      }
+    },
+    "/domains/{domain}/users/count": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Contar usuarios en el dominio",
+        "operationId": "countUsersInDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Conteo", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CountResponse" } } } } }
+      }
+    },
+    "/domains/{domain}/users/search": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Buscar usuarios en el dominio",
+        "operationId": "searchUsersInDomain",
+        "parameters": [
+          { "$ref": "#/components/parameters/domain" },
+          { "name": "q", "in": "query", "required": true, "description": "Término de búsqueda", "schema": { "type": "string" } },
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/start" }
+        ],
+        "responses": { "200": { "description": "Resultados de búsqueda", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/User" } } } } } }
+      }
+    },
+    "/domains/{domain}/users/{user}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Obtener usuario específico",
+        "operationId": "getUserInDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" }],
+        "responses": { "200": { "description": "Usuario", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } } }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Actualizar usuario",
+        "operationId": "updateUserInDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserCreate" } } } },
+        "responses": { "200": { "description": "Usuario actualizado" } }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Eliminar usuario",
+        "operationId": "deleteUserInDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" }],
+        "responses": { "204": { "description": "Usuario eliminado" } }
+      }
+    },
+    "/domains/{domain}/users/{user}/devices": {
+      "get": {
+        "tags": ["Devices"],
+        "summary": "Obtener dispositivos de un usuario",
+        "operationId": "getDevicesForUser",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" }],
+        "responses": { "200": { "description": "Dispositivos", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Device" } } } } } }
+      },
+      "post": {
+        "tags": ["Devices"],
+        "summary": "Crear dispositivo para usuario",
+        "operationId": "createDeviceForUser",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeviceCreate" } } } },
+        "responses": { "201": { "description": "Dispositivo creado" } }
+      }
+    },
+    "/domains/{domain}/users/{user}/devices/{device}": {
+      "get": {
+        "tags": ["Devices"],
+        "summary": "Obtener dispositivo específico",
+        "operationId": "getSpecificDevice",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" }, { "$ref": "#/components/parameters/device" }],
+        "responses": { "200": { "description": "Dispositivo", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Device" } } } } }
+      },
+      "put": {
+        "tags": ["Devices"],
+        "summary": "Actualizar dispositivo",
+        "operationId": "updateDeviceForUser",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" }, { "$ref": "#/components/parameters/device" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeviceCreate" } } } },
+        "responses": { "200": { "description": "Dispositivo actualizado" } }
+      },
+      "delete": {
+        "tags": ["Devices"],
+        "summary": "Eliminar dispositivo",
+        "operationId": "deleteDeviceForUser",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" }, { "$ref": "#/components/parameters/device" }],
+        "responses": { "204": { "description": "Dispositivo eliminado" } }
+      }
+    },
+    "/domains/{domain}/phonenumbers": {
+      "get": {
+        "tags": ["Phone Numbers"],
+        "summary": "Obtener todos los números de teléfono del dominio",
+        "operationId": "getPhoneNumbersInDomain",
+        "parameters": [
+          { "$ref": "#/components/parameters/domain" },
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/start" }
+        ],
+        "responses": { "200": { "description": "Números de teléfono", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/PhoneNumber" } } } } } }
+      },
+      "post": {
+        "tags": ["Phone Numbers"],
+        "summary": "Agregar número de teléfono al dominio",
+        "operationId": "addPhoneNumberToDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PhoneNumberCreate" } } } },
+        "responses": { "201": { "description": "Número creado" } }
+      }
+    },
+    "/domains/{domain}/phonenumbers/count": {
+      "get": {
+        "tags": ["Phone Numbers"],
+        "summary": "Contar números de teléfono del dominio",
+        "operationId": "countPhoneNumbersInDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Conteo", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CountResponse" } } } } }
+      }
+    },
+    "/domains/{domain}/phonenumbers/{phonenumber}": {
+      "get": {
+        "tags": ["Phone Numbers"],
+        "summary": "Obtener número de teléfono específico",
+        "operationId": "getPhoneNumber",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/phonenumber" }],
+        "responses": { "200": { "description": "Número", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PhoneNumber" } } } } }
+      },
+      "put": {
+        "tags": ["Phone Numbers"],
+        "summary": "Actualizar número de teléfono",
+        "operationId": "updatePhoneNumber",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/phonenumber" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PhoneNumberCreate" } } } },
+        "responses": { "200": { "description": "Número actualizado" } }
+      },
+      "delete": {
+        "tags": ["Phone Numbers"],
+        "summary": "Eliminar número de teléfono",
+        "operationId": "deletePhoneNumber",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/phonenumber" }],
+        "responses": { "204": { "description": "Número eliminado" } }
+      }
+    },
+    "/domains/{domain}/callqueues": {
+      "get": {
+        "tags": ["Call Center"],
+        "summary": "Leer Call Queues en el dominio",
+        "operationId": "getCallQueuesInDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/limit" }, { "$ref": "#/components/parameters/start" }],
+        "responses": { "200": { "description": "Call queues", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/CallQueue" } } } } } }
+      },
+      "post": {
+        "tags": ["Call Center"],
+        "summary": "Crear Call Queue en el dominio",
+        "operationId": "createCallQueue",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CallQueueCreate" } } } },
+        "responses": { "201": { "description": "Call queue creada" } }
+      }
+    },
+    "/domains/{domain}/callqueues/{queue}": {
+      "get": {
+        "tags": ["Call Center"],
+        "summary": "Leer Call Queue específica",
+        "operationId": "getCallQueue",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/queue" }],
+        "responses": { "200": { "description": "Call queue", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CallQueue" } } } } }
+      },
+      "put": {
+        "tags": ["Call Center"],
+        "summary": "Actualizar Call Queue",
+        "operationId": "updateCallQueue",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/queue" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CallQueueCreate" } } } },
+        "responses": { "200": { "description": "Queue actualizada" } }
+      },
+      "delete": {
+        "tags": ["Call Center"],
+        "summary": "Eliminar Call Queue",
+        "operationId": "deleteCallQueue",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/queue" }],
+        "responses": { "204": { "description": "Queue eliminada" } }
+      }
+    },
+    "/domains/{domain}/callqueues/{queue}/agents": {
+      "get": {
+        "tags": ["Call Center"],
+        "summary": "Leer agentes en la Call Queue",
+        "operationId": "getAgentsInQueue",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/queue" }],
+        "responses": { "200": { "description": "Agentes", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Agent" } } } } } }
+      },
+      "post": {
+        "tags": ["Call Center"],
+        "summary": "Agregar agente a la Call Queue",
+        "operationId": "addAgentToQueue",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/queue" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AgentCreate" } } } },
+        "responses": { "201": { "description": "Agente agregado" } }
+      }
+    },
+    "/domains/{domain}/callqueues/{queue}/agents/{agent}": {
+      "get": {
+        "tags": ["Call Center"],
+        "summary": "Leer agente específico en la queue",
+        "operationId": "getAgentInQueue",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/queue" }, { "$ref": "#/components/parameters/agentParam" }],
+        "responses": { "200": { "description": "Agente", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Agent" } } } } }
+      },
+      "put": {
+        "tags": ["Call Center"],
+        "summary": "Actualizar agente en la queue",
+        "operationId": "updateAgentInQueue",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/queue" }, { "$ref": "#/components/parameters/agentParam" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AgentCreate" } } } },
+        "responses": { "200": { "description": "Agente actualizado" } }
+      },
+      "delete": {
+        "tags": ["Call Center"],
+        "summary": "Remover agente de la queue",
+        "operationId": "removeAgentFromQueue",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/queue" }, { "$ref": "#/components/parameters/agentParam" }],
+        "responses": { "204": { "description": "Agente removido" } }
+      }
+    },
+    "/domains/{domain}/callqueues/{queue}/agents/{agent}/login": {
+      "post": {
+        "tags": ["Call Center"],
+        "summary": "Agent Login",
+        "operationId": "agentLogin",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/queue" }, { "$ref": "#/components/parameters/agentParam" }],
+        "responses": { "200": { "description": "Agente logged in" } }
+      }
+    },
+    "/domains/{domain}/callqueues/{queue}/agents/{agent}/logout": {
+      "post": {
+        "tags": ["Call Center"],
+        "summary": "Agent Logout",
+        "operationId": "agentLogout",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/queue" }, { "$ref": "#/components/parameters/agentParam" }],
+        "responses": { "200": { "description": "Agente logged out" } }
+      }
+    },
+    "/domains/{domain}/callqueues/{queue}/statistics": {
+      "get": {
+        "tags": ["Call Center"],
+        "summary": "Obtener estadísticas de la queue específica",
+        "operationId": "getQueueStatistics",
+        "parameters": [
+          { "$ref": "#/components/parameters/domain" },
+          { "$ref": "#/components/parameters/queue" },
+          { "name": "start_date", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "end_date", "in": "query", "schema": { "type": "string", "format": "date-time" } }
+        ],
+        "responses": { "200": { "description": "Estadísticas de la queue" } }
+      }
+    },
+    "/domains/{domain}/users/{user}/answerrules": {
+      "get": {
+        "tags": ["Answer Rules"],
+        "summary": "Leer reglas de respuesta del usuario",
+        "operationId": "getAnswerRules",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" }],
+        "responses": { "200": { "description": "Reglas de respuesta", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/AnswerRule" } } } } } }
+      },
+      "post": {
+        "tags": ["Answer Rules"],
+        "summary": "Agregar regla de respuesta al usuario",
+        "operationId": "addAnswerRule",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AnswerRule" } } } },
+        "responses": { "201": { "description": "Regla creada" } }
+      }
+    },
+    "/domains/{domain}/autoattendants": {
+      "get": {
+        "tags": ["Auto Attendant"],
+        "summary": "Leer Auto Attendants",
+        "operationId": "getAutoAttendants",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Auto Attendants", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/AutoAttendant" } } } } } }
+      },
+      "post": {
+        "tags": ["Auto Attendant"],
+        "summary": "Crear Auto Attendant",
+        "operationId": "createAutoAttendant",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AutoAttendantCreate" } } } },
+        "responses": { "201": { "description": "Auto Attendant creado" } }
+      }
+    },
+    "/domains/{domain}/autoattendants/{attendant}": {
+      "get": {
+        "tags": ["Auto Attendant"],
+        "summary": "Leer Auto Attendant específico",
+        "operationId": "getAutoAttendant",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/attendant" }],
+        "responses": { "200": { "description": "Auto Attendant" } }
+      },
+      "put": {
+        "tags": ["Auto Attendant"],
+        "summary": "Actualizar Auto Attendant",
+        "operationId": "updateAutoAttendant",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/attendant" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AutoAttendantCreate" } } } },
+        "responses": { "200": { "description": "Actualizado" } }
+      },
+      "delete": {
+        "tags": ["Auto Attendant"],
+        "summary": "Eliminar Auto Attendant",
+        "operationId": "deleteAutoAttendant",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/attendant" }],
+        "responses": { "204": { "description": "Eliminado" } }
+      }
+    },
+    "/domains/{domain}/users/{user}/voicemail/{folder}": {
+      "get": {
+        "tags": ["Media"],
+        "summary": "Leer voicemail por carpeta",
+        "operationId": "getVoicemailByFolder",
+        "parameters": [
+          { "$ref": "#/components/parameters/domain" },
+          { "$ref": "#/components/parameters/user" },
+          { "name": "folder", "in": "path", "required": true, "schema": { "type": "string", "enum": ["inbox", "saved", "deleted"], "example": "inbox" } }
+        ],
+        "responses": { "200": { "description": "Mensajes de voicemail", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Voicemail" } } } } } }
+      }
+    },
+    "/domains/{domain}/users/{user}/voicemail/{folder}/{message}": {
+      "get": {
+        "tags": ["Media"],
+        "summary": "Leer voicemail específico",
+        "operationId": "getVoicemail",
+        "parameters": [
+          { "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" },
+          { "name": "folder", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "message", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Voicemail" } }
+      },
+      "delete": {
+        "tags": ["Media"],
+        "summary": "Eliminar voicemail",
+        "operationId": "deleteVoicemail",
+        "parameters": [
+          { "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" },
+          { "name": "folder", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "message", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "204": { "description": "Voicemail eliminado" } }
+      }
+    },
+    "/domains/{domain}/cdrs": {
+      "get": {
+        "tags": ["CDR"],
+        "summary": "Leer CDRs del dominio",
+        "operationId": "getCDRsForDomain",
+        "parameters": [
+          { "$ref": "#/components/parameters/domain" },
+          { "name": "start_date", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "end_date", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/start" }
+        ],
+        "responses": { "200": { "description": "CDRs", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/CDR" } } } } } }
+      }
+    },
+    "/domains/{domain}/users/{user}/cdrs": {
+      "get": {
+        "tags": ["CDR"],
+        "summary": "Leer CDRs de usuario específico",
+        "operationId": "getCDRsForUser",
+        "parameters": [
+          { "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/user" },
+          { "name": "start_date", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "end_date", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/start" }
+        ],
+        "responses": { "200": { "description": "CDRs", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/CDR" } } } } } }
+      }
+    },
+    "/domains/{domain}/calls": {
+      "get": {
+        "tags": ["Calls"],
+        "summary": "Leer llamadas activas en el dominio",
+        "operationId": "getActiveCallsInDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Llamadas activas", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/ActiveCall" } } } } } }
+      },
+      "post": {
+        "tags": ["Calls"],
+        "summary": "Hacer una nueva llamada",
+        "operationId": "makeCall",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MakeCall" } } } },
+        "responses": { "201": { "description": "Llamada iniciada" } }
+      }
+    },
+    "/domains/{domain}/calls/{callid}": {
+      "get": {
+        "tags": ["Calls"],
+        "summary": "Leer llamada activa específica",
+        "operationId": "getActiveCall",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/callid" }],
+        "responses": { "200": { "description": "Llamada activa", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ActiveCall" } } } } }
+      },
+      "delete": {
+        "tags": ["Calls"],
+        "summary": "Colgar llamada",
+        "operationId": "disconnectCall",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/callid" }],
+        "responses": { "204": { "description": "Llamada colgada" } }
+      }
+    },
+    "/domains/{domain}/calls/{callid}/transfer": {
+      "post": {
+        "tags": ["Calls"],
+        "summary": "Transferir llamada",
+        "operationId": "transferCall",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/callid" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "destination": { "type": "string" } }, "required": ["destination"] } } } },
+        "responses": { "200": { "description": "Transferida" } }
+      }
+    },
+    "/domains/{domain}/calls/{callid}/hold": {
+      "post": {
+        "tags": ["Calls"],
+        "summary": "Poner llamada en espera",
+        "operationId": "holdCall",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/callid" }],
+        "responses": { "200": { "description": "En espera" } }
+      }
+    },
+    "/domains/{domain}/messagesessions": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Obtener sesiones de mensajes del dominio",
+        "operationId": "getMessageSessionsDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/limit" }, { "$ref": "#/components/parameters/start" }],
+        "responses": { "200": { "description": "Sesiones de mensajes" } }
+      },
+      "post": {
+        "tags": ["Messages"],
+        "summary": "Iniciar nueva sesión de mensajes",
+        "operationId": "startMessageSession",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageSessionCreate" } } } },
+        "responses": { "201": { "description": "Sesión creada" } }
+      }
+    },
+    "/domains/{domain}/messagesessions/{session}/messages": {
+      "get": {
+        "tags": ["Messages"],
+        "summary": "Obtener mensajes de la sesión",
+        "operationId": "getMessagesForSession",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/session" }],
+        "responses": { "200": { "description": "Mensajes" } }
+      },
+      "post": {
+        "tags": ["Messages"],
+        "summary": "Enviar un mensaje (SMS/Chat/MMS)",
+        "operationId": "sendMessage",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/session" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SendMessage" } } } },
+        "responses": { "201": { "description": "Mensaje enviado" } }
+      }
+    },
+    "/domains/{domain}/contacts": {
+      "get": {
+        "tags": ["Contacts"],
+        "summary": "Obtener contactos compartidos del dominio",
+        "operationId": "getDomainContacts",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/limit" }, { "$ref": "#/components/parameters/start" }],
+        "responses": { "200": { "description": "Contactos compartidos", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Contact" } } } } } }
+      },
+      "post": {
+        "tags": ["Contacts"],
+        "summary": "Crear contacto compartido",
+        "operationId": "createSharedContact",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ContactCreate" } } } },
+        "responses": { "201": { "description": "Contacto creado" } }
+      }
+    },
+    "/domains/{domain}/connections": {
+      "get": {
+        "tags": ["Connections"],
+        "summary": "Obtener conexiones SIP del dominio",
+        "operationId": "getConnectionsForDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Conexiones", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Connection" } } } } } }
+      }
+    },
+    "/connections": {
+      "get": {
+        "tags": ["Connections"],
+        "summary": "Obtener todas las conexiones",
+        "operationId": "getAllConnections",
+        "parameters": [{ "$ref": "#/components/parameters/limit" }, { "$ref": "#/components/parameters/start" }],
+        "responses": { "200": { "description": "Todas las conexiones" } }
+      },
+      "post": {
+        "tags": ["Connections"],
+        "summary": "Crear una conexión",
+        "operationId": "createConnection",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Connection" } } } },
+        "responses": { "201": { "description": "Conexión creada" } }
+      }
+    },
+    "/domains/{domain}/subscriptions": {
+      "get": {
+        "tags": ["Event Subscriptions"],
+        "summary": "Leer suscripciones a eventos del dominio",
+        "operationId": "getSubscriptionsForDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Suscripciones", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/EventSubscription" } } } } } }
+      },
+      "post": {
+        "tags": ["Event Subscriptions"],
+        "summary": "Crear suscripción a eventos para dominio",
+        "operationId": "createSubscriptionForDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EventSubscriptionCreate" } } } },
+        "responses": { "201": { "description": "Suscripción creada" } }
+      }
+    },
+    "/subscriptions": {
+      "get": {
+        "tags": ["Event Subscriptions"],
+        "summary": "Leer todas las suscripciones a eventos",
+        "operationId": "getSubscriptions",
+        "responses": { "200": { "description": "Suscripciones" } }
+      }
+    },
+    "/subscriptions/{subscriptionId}": {
+      "get": {
+        "tags": ["Event Subscriptions"],
+        "summary": "Leer suscripción por ID",
+        "operationId": "getSubscriptionById",
+        "parameters": [{ "name": "subscriptionId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Suscripción" } }
+      },
+      "put": {
+        "tags": ["Event Subscriptions"],
+        "summary": "Actualizar suscripción",
+        "operationId": "updateSubscription",
+        "parameters": [{ "name": "subscriptionId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EventSubscriptionCreate" } } } },
+        "responses": { "200": { "description": "Actualizada" } }
+      },
+      "delete": {
+        "tags": ["Event Subscriptions"],
+        "summary": "Eliminar suscripción",
+        "operationId": "deleteSubscription",
+        "parameters": [{ "name": "subscriptionId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "204": { "description": "Eliminada" } }
+      }
+    },
+    "/domains/{domain}/sites": {
+      "get": {
+        "tags": ["Sites"],
+        "summary": "Leer sitios en el dominio",
+        "operationId": "getSitesInDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Sitios", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Site" } } } } } }
+      },
+      "post": {
+        "tags": ["Sites"],
+        "summary": "Crear sitio en el dominio",
+        "operationId": "createSite",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SiteCreate" } } } },
+        "responses": { "201": { "description": "Sitio creado" } }
+      }
+    },
+    "/domains/{domain}/sites/{site}": {
+      "get": {
+        "tags": ["Sites"],
+        "summary": "Leer sitio específico",
+        "operationId": "getSite",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "name": "site", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Sitio" } }
+      },
+      "put": {
+        "tags": ["Sites"],
+        "summary": "Actualizar sitio",
+        "operationId": "updateSite",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "name": "site", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SiteCreate" } } } },
+        "responses": { "200": { "description": "Actualizado" } }
+      }
+    },
+    "/domains/{domain}/cdrs/{callid}/trace": {
+      "get": {
+        "tags": ["Call Traces"],
+        "summary": "Obtener traza SIP (SIPFlow) de una llamada",
+        "operationId": "getCallTrace",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/callid" }],
+        "responses": { "200": { "description": "Traza SIP de la llamada" } }
+      }
+    },
+    "/domains/{domain}/cdrs/{callid}/cradletogrove": {
+      "get": {
+        "tags": ["Call Traces"],
+        "summary": "Obtener info Cradle-to-Grave de una llamada",
+        "operationId": "getCradleToGrave",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/callid" }],
+        "responses": { "200": { "description": "Cradle-to-Grave" } }
+      }
+    },
+    "/domains/{domain}/cdrs/{callid}/transcription": {
+      "get": {
+        "tags": ["Transcriptions"],
+        "summary": "Leer transcripción de llamada específica",
+        "operationId": "getTranscription",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "$ref": "#/components/parameters/callid" }],
+        "responses": { "200": { "description": "Transcripción y sentimiento" } }
+      }
+    },
+    "/domains/{domain}/backup": {
+      "post": {
+        "tags": ["Backup & Restore"],
+        "summary": "Hacer backup manual de un dominio",
+        "operationId": "backupDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "202": { "description": "Backup solicitado" } }
+      }
+    },
+    "/configs": {
+      "get": {
+        "tags": ["Configs"],
+        "summary": "Leer todas las configuraciones NS",
+        "operationId": "getAllConfigs",
+        "responses": { "200": { "description": "Configuraciones" } }
+      },
+      "post": {
+        "tags": ["Configs"],
+        "summary": "Crear configuración",
+        "operationId": "createConfig",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Config" } } } },
+        "responses": { "201": { "description": "Configuración creada" } }
+      }
+    },
+    "/configs/{config}": {
+      "get": {
+        "tags": ["Configs"],
+        "summary": "Leer configuración específica",
+        "operationId": "getConfig",
+        "parameters": [{ "name": "config", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Configuración" } }
+      },
+      "put": {
+        "tags": ["Configs"],
+        "summary": "Actualizar configuración",
+        "operationId": "updateConfig",
+        "parameters": [{ "name": "config", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Config" } } } },
+        "responses": { "200": { "description": "Actualizada" } }
+      },
+      "delete": {
+        "tags": ["Configs"],
+        "summary": "Eliminar configuración",
+        "operationId": "deleteConfig",
+        "parameters": [{ "name": "config", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "204": { "description": "Eliminada" } }
+      }
+    },
+    "/domains/{domain}/dialplans": {
+      "get": {
+        "tags": ["Dialrule"],
+        "summary": "Leer Dialplans",
+        "operationId": "getDialplans",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Dialplans" } }
+      },
+      "post": {
+        "tags": ["Dialrule"],
+        "summary": "Crear Dialplan para el dominio",
+        "operationId": "createDialplanForDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Dialplan" } } } },
+        "responses": { "201": { "description": "Dialplan creado" } }
+      }
+    },
+    "/domains/{domain}/dialplans/{dialplan}/dialrules": {
+      "get": {
+        "tags": ["Dialrule"],
+        "summary": "Leer reglas de marcado en un dialplan",
+        "operationId": "getDialrules",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "name": "dialplan", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Reglas de marcado" } }
+      },
+      "post": {
+        "tags": ["Dialrule"],
+        "summary": "Agregar regla de marcado al dialplan",
+        "operationId": "addDialrule",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }, { "name": "dialplan", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Dialrule" } } } },
+        "responses": { "201": { "description": "Regla creada" } }
+      }
+    },
+    "/routes": {
+      "get": {
+        "tags": ["Routes"],
+        "summary": "Leer todas las rutas",
+        "operationId": "getRoutes",
+        "responses": { "200": { "description": "Rutas" } }
+      },
+      "post": {
+        "tags": ["Routes"],
+        "summary": "Crear ruta",
+        "operationId": "createRoute",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Route" } } } },
+        "responses": { "201": { "description": "Ruta creada" } }
+      }
+    },
+    "/domains/{domain}/meetings": {
+      "get": {
+        "tags": ["Meetings"],
+        "summary": "Leer reuniones del dominio",
+        "operationId": "getMeetingsForDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Reuniones" } }
+      },
+      "post": {
+        "tags": ["Meetings"],
+        "summary": "Crear reunión",
+        "operationId": "createMeeting",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MeetingCreate" } } } },
+        "responses": { "201": { "description": "Reunión creada" } }
+      }
+    },
+    "/domains/{domain}/smsnumbers": {
+      "get": {
+        "tags": ["SMS Numbers"],
+        "summary": "Obtener números SMS del dominio",
+        "operationId": "getSmsNumbersForDomain",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "responses": { "200": { "description": "Números SMS" } }
+      },
+      "post": {
+        "tags": ["SMS Numbers"],
+        "summary": "Crear número SMS",
+        "operationId": "createSmsNumber",
+        "parameters": [{ "$ref": "#/components/parameters/domain" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "number": { "type": "string" }, "user": { "type": "string" } } } } } },
+        "responses": { "201": { "description": "Número SMS creado" } }
+      }
+    },
+    "/tts/voices": {
+      "get": {
+        "tags": ["Media"],
+        "summary": "Obtener voces disponibles de Text-to-Speech",
+        "operationId": "getTTSVoices",
+        "responses": { "200": { "description": "Voces disponibles" } }
+      }
+    },
+    "/tts/synthesize": {
+      "post": {
+        "tags": ["Media"],
+        "summary": "Sintetizar voz (TTS)",
+        "operationId": "synthesizeTTS",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["text", "voice"], "properties": { "text": { "type": "string" }, "voice": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Audio sintetizado" } }
+      }
+    },
+    "/macs": {
+      "get": {
+        "tags": ["Phones/MACs"],
+        "summary": "Leer MAC addresses",
+        "operationId": "getMacs",
+        "parameters": [{ "$ref": "#/components/parameters/limit" }, { "$ref": "#/components/parameters/start" }],
+        "responses": { "200": { "description": "MACs" } }
+      },
+      "post": {
+        "tags": ["Phones/MACs"],
+        "summary": "Agregar MAC address",
+        "operationId": "addMac",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MacAddress" } } } },
+        "responses": { "201": { "description": "MAC creada" } }
+      }
+    },
+    "/macs/{mac}": {
+      "get": {
+        "tags": ["Phones/MACs"],
+        "summary": "Leer MAC address específica",
+        "operationId": "getMac",
+        "parameters": [{ "name": "mac", "in": "path", "required": true, "schema": { "type": "string", "example": "AABBCCDDEEFF" } }],
+        "responses": { "200": { "description": "MAC address" } }
+      },
+      "put": {
+        "tags": ["Phones/MACs"],
+        "summary": "Actualizar MAC address",
+        "operationId": "updateMac",
+        "parameters": [{ "name": "mac", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MacAddress" } } } },
+        "responses": { "200": { "description": "MAC actualizada" } }
+      },
+      "delete": {
+        "tags": ["Phones/MACs"],
+        "summary": "Eliminar MAC address",
+        "operationId": "deleteMac",
+        "parameters": [{ "name": "mac", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "204": { "description": "MAC eliminada" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Token OAuth2, JWT, o API Key. Formato: `Authorization: Bearer {token}`"
+      }
+    },
+    "parameters": {
+      "domain": {
+        "name": "domain",
+        "in": "path",
+        "required": true,
+        "description": "Nombre del dominio (ej. `example.com`). Puede usar `~` para el dominio propio.",
+        "schema": { "type": "string", "example": "example.com" }
+      },
+      "user": {
+        "name": "user",
+        "in": "path",
+        "required": true,
+        "description": "Nombre de usuario o extensión. Puede usar `~` para el usuario autenticado.",
+        "schema": { "type": "string", "example": "1001" }
+      },
+      "reseller": {
+        "name": "reseller",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string", "example": "myreseller" }
+      },
+      "device": {
+        "name": "device",
+        "in": "path",
+        "required": true,
+        "description": "Identificador del dispositivo SIP",
+        "schema": { "type": "string" }
+      },
+      "phonenumber": {
+        "name": "phonenumber",
+        "in": "path",
+        "required": true,
+        "description": "Número de teléfono en formato E.164 (ej. 5551234567)",
+        "schema": { "type": "string", "example": "5551234567" }
+      },
+      "queue": {
+        "name": "queue",
+        "in": "path",
+        "required": true,
+        "description": "Nombre o ID de la call queue",
+        "schema": { "type": "string" }
+      },
+      "agentParam": {
+        "name": "agent",
+        "in": "path",
+        "required": true,
+        "description": "Usuario agente",
+        "schema": { "type": "string" }
+      },
+      "attendant": {
+        "name": "attendant",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "callid": {
+        "name": "callid",
+        "in": "path",
+        "required": true,
+        "description": "ID de la llamada",
+        "schema": { "type": "string" }
+      },
+      "session": {
+        "name": "session",
+        "in": "path",
+        "required": true,
+        "description": "ID de la sesión de mensajes",
+        "schema": { "type": "string" }
+      },
+      "keyId": {
+        "name": "keyId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "limit": {
+        "name": "limit",
+        "in": "query",
+        "description": "Número máximo de resultados",
+        "schema": { "type": "integer", "default": 100, "example": 100 }
+      },
+      "start": {
+        "name": "start",
+        "in": "query",
+        "description": "Offset de paginación",
+        "schema": { "type": "integer", "default": 0, "example": 0 }
+      }
+    },
+    "schemas": {
+      "OAuthToken": {
+        "type": "object",
+        "properties": {
+          "access_token": { "type": "string" },
+          "token_type": { "type": "string", "example": "Bearer" },
+          "expires_in": { "type": "integer", "example": 3600 },
+          "refresh_token": { "type": "string" },
+          "scope": { "type": "string" }
+        }
+      },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "key-id": { "type": "string" },
+          "key": { "type": "string" },
+          "description": { "type": "string" },
+          "user": { "type": "string" },
+          "domain": { "type": "string" },
+          "created": { "type": "string", "format": "date-time" },
+          "last-used": { "type": "string", "format": "date-time" },
+          "status": { "type": "string", "enum": ["active", "revoked"] }
+        }
+      },
+      "ApiKeyCreate": {
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "user": { "type": "string" },
+          "domain": { "type": "string" }
+        }
+      },
+      "CountResponse": {
+        "type": "object",
+        "properties": {
+          "count": { "type": "integer", "example": 42 }
+        }
+      },
+      "Reseller": {
+        "type": "object",
+        "properties": {
+          "reseller": { "type": "string", "example": "myreseller" },
+          "reseller-description": { "type": "string" },
+          "reseller-dialplan": { "type": "string" },
+          "reseller-tier": { "type": "string" },
+          "reseller-status": { "type": "string", "enum": ["active", "inactive"] },
+          "reseller-logo": { "type": "string" },
+          "reseller-support-email": { "type": "string", "format": "email" },
+          "reseller-support-phone": { "type": "string" }
+        }
+      },
+      "ResellerCreate": {
+        "type": "object",
+        "required": ["reseller"],
+        "properties": {
+          "reseller": { "type": "string" },
+          "reseller-description": { "type": "string" },
+          "reseller-dialplan": { "type": "string" },
+          "reseller-support-email": { "type": "string", "format": "email" }
+        }
+      },
+      "Domain": {
+        "type": "object",
+        "properties": {
+          "domain": { "type": "string", "example": "example.com" },
+          "reseller": { "type": "string" },
+          "domain-description": { "type": "string" },
+          "domain-directory-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "domain-dialplan": { "type": "string" },
+          "domain-dial-policy": { "type": "string" },
+          "domain-recording-enabled": { "type": "string", "enum": ["yes", "no", "inbound", "outbound"] },
+          "domain-max-users": { "type": "integer" },
+          "domain-max-devices": { "type": "integer" },
+          "domain-status": { "type": "string", "enum": ["active", "inactive"] },
+          "domain-country": { "type": "string" },
+          "domain-area-code": { "type": "string" },
+          "domain-e911-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "domain-voicemail-transcription-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "domain-sms-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "domain-fax-enabled": { "type": "string", "enum": ["yes", "no"] }
+        }
+      },
+      "DomainCreate": {
+        "type": "object",
+        "required": ["domain", "reseller"],
+        "properties": {
+          "domain": { "type": "string", "example": "newclient.example.com" },
+          "reseller": { "type": "string" },
+          "domain-description": { "type": "string" },
+          "domain-dialplan": { "type": "string" },
+          "domain-recording-enabled": { "type": "string", "enum": ["yes", "no", "inbound", "outbound"] },
+          "domain-country": { "type": "string", "example": "US" },
+          "domain-area-code": { "type": "string" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "user": { "type": "string", "example": "1001" },
+          "domain": { "type": "string", "example": "example.com" },
+          "user-first-name": { "type": "string" },
+          "user-last-name": { "type": "string" },
+          "user-email": { "type": "string", "format": "email" },
+          "user-scope": { "type": "string", "enum": ["User", "Office Manager", "Domain Admin", "Reseller Admin", "Super Admin"] },
+          "user-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "user-dialplan": { "type": "string" },
+          "user-dial-policy": { "type": "string" },
+          "user-directory-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "user-recording-enabled": { "type": "string", "enum": ["yes", "no", "inbound", "outbound"] },
+          "user-voicemail-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "user-voicemail-transcription-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "user-sms-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "user-sites": { "type": "string" },
+          "user-timezone": { "type": "string", "example": "America/New_York" },
+          "user-caller-id-name": { "type": "string" },
+          "user-caller-id-number": { "type": "string" },
+          "user-extension": { "type": "string" },
+          "user-password": { "type": "string" },
+          "user-sip-password": { "type": "string" }
+        }
+      },
+      "UserCreate": {
+        "type": "object",
+        "required": ["user", "user-first-name", "user-last-name"],
+        "properties": {
+          "user": { "type": "string", "example": "1001" },
+          "user-first-name": { "type": "string" },
+          "user-last-name": { "type": "string" },
+          "user-email": { "type": "string", "format": "email" },
+          "user-scope": { "type": "string", "enum": ["User", "Office Manager", "Domain Admin"] },
+          "user-password": { "type": "string" },
+          "user-sip-password": { "type": "string" },
+          "user-timezone": { "type": "string" },
+          "user-caller-id-name": { "type": "string" },
+          "user-caller-id-number": { "type": "string" }
+        }
+      },
+      "Device": {
+        "type": "object",
+        "properties": {
+          "device": { "type": "string" },
+          "user": { "type": "string" },
+          "domain": { "type": "string" },
+          "device-type": { "type": "string", "enum": ["ata", "basic", "fax", "moh", "phone", "softphone", "webrtc"] },
+          "device-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "device-registration-host": { "type": "string" },
+          "device-transport": { "type": "string", "enum": ["udp", "tcp", "tls"] },
+          "device-outbound-proxy-host": { "type": "string" },
+          "device-sip-password": { "type": "string" },
+          "device-mac": { "type": "string" },
+          "device-voicemail-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "device-call-recording": { "type": "string", "enum": ["yes", "no"] }
+        }
+      },
+      "DeviceCreate": {
+        "type": "object",
+        "required": ["device-type"],
+        "properties": {
+          "device-type": { "type": "string", "enum": ["ata", "basic", "phone", "softphone", "webrtc"] },
+          "device-transport": { "type": "string", "enum": ["udp", "tcp", "tls"] },
+          "device-mac": { "type": "string" },
+          "device-sip-password": { "type": "string" },
+          "device-enabled": { "type": "string", "enum": ["yes", "no"] }
+        }
+      },
+      "PhoneNumber": {
+        "type": "object",
+        "properties": {
+          "phonenumber": { "type": "string", "example": "5551234567" },
+          "domain": { "type": "string" },
+          "reseller": { "type": "string" },
+          "phonenumber-status": { "type": "string", "enum": ["available", "in-use", "porting"] },
+          "phonenumber-destination": { "type": "string" },
+          "phonenumber-destination-type": { "type": "string", "enum": ["user", "callqueue", "autoattendant", "offnet", "dialplan"] },
+          "phonenumber-caller-id-name": { "type": "string" },
+          "phonenumber-e911-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "phonenumber-sms-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "phonenumber-fax-enabled": { "type": "string", "enum": ["yes", "no"] }
+        }
+      },
+      "PhoneNumberCreate": {
+        "type": "object",
+        "required": ["phonenumber"],
+        "properties": {
+          "phonenumber": { "type": "string" },
+          "phonenumber-destination": { "type": "string" },
+          "phonenumber-destination-type": { "type": "string", "enum": ["user", "callqueue", "autoattendant", "offnet", "dialplan"] },
+          "phonenumber-caller-id-name": { "type": "string" }
+        }
+      },
+      "CallQueue": {
+        "type": "object",
+        "properties": {
+          "callqueue": { "type": "string" },
+          "domain": { "type": "string" },
+          "callqueue-description": { "type": "string" },
+          "callqueue-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "callqueue-dispatch-type": { "type": "string", "enum": ["ring-all", "round-robin", "least-active", "fewest-calls", "random", "skill-based"] },
+          "callqueue-max-wait-time": { "type": "integer", "example": 300 },
+          "callqueue-max-queue-size": { "type": "integer", "example": 10 },
+          "callqueue-caller-id-name": { "type": "string" },
+          "callqueue-recording-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "callqueue-voicemail-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "callqueue-hold-music": { "type": "string" },
+          "callqueue-agent-availability-type": { "type": "string", "enum": ["available", "unavailable", "wrap-up"] }
+        }
+      },
+      "CallQueueCreate": {
+        "type": "object",
+        "required": ["callqueue"],
+        "properties": {
+          "callqueue": { "type": "string" },
+          "callqueue-description": { "type": "string" },
+          "callqueue-dispatch-type": { "type": "string", "enum": ["ring-all", "round-robin", "least-active", "fewest-calls", "random"] },
+          "callqueue-max-wait-time": { "type": "integer" },
+          "callqueue-max-queue-size": { "type": "integer" },
+          "callqueue-recording-enabled": { "type": "string", "enum": ["yes", "no"] }
+        }
+      },
+      "Agent": {
+        "type": "object",
+        "properties": {
+          "agent": { "type": "string" },
+          "domain": { "type": "string" },
+          "callqueue": { "type": "string" },
+          "agent-status": { "type": "string", "enum": ["available", "unavailable", "single-call", "offline"] },
+          "agent-priority": { "type": "integer" },
+          "agent-penalty": { "type": "integer" }
+        }
+      },
+      "AgentCreate": {
+        "type": "object",
+        "required": ["agent"],
+        "properties": {
+          "agent": { "type": "string" },
+          "agent-priority": { "type": "integer" },
+          "agent-penalty": { "type": "integer" }
+        }
+      },
+      "AnswerRule": {
+        "type": "object",
+        "properties": {
+          "rule-order": { "type": "integer" },
+          "rule-name": { "type": "string" },
+          "rule-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "rule-action": { "type": "string", "enum": ["dial", "voicemail", "hangup", "autoattendant", "callqueue", "forward"] },
+          "rule-destination": { "type": "string" },
+          "rule-rings": { "type": "integer" },
+          "timeframe": { "type": "string" }
+        }
+      },
+      "AutoAttendant": {
+        "type": "object",
+        "properties": {
+          "autoattendant": { "type": "string" },
+          "domain": { "type": "string" },
+          "autoattendant-description": { "type": "string" },
+          "autoattendant-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "autoattendant-greeting": { "type": "string" },
+          "autoattendant-digit-timeout": { "type": "integer" }
+        }
+      },
+      "AutoAttendantCreate": {
+        "type": "object",
+        "required": ["autoattendant"],
+        "properties": {
+          "autoattendant": { "type": "string" },
+          "autoattendant-description": { "type": "string" },
+          "autoattendant-greeting": { "type": "string" }
+        }
+      },
+      "Voicemail": {
+        "type": "object",
+        "properties": {
+          "message-id": { "type": "string" },
+          "message-date": { "type": "string", "format": "date-time" },
+          "message-duration": { "type": "integer" },
+          "message-callerid-name": { "type": "string" },
+          "message-callerid-number": { "type": "string" },
+          "message-folder": { "type": "string" },
+          "message-listened": { "type": "string", "enum": ["yes", "no"] },
+          "message-transcription": { "type": "string" }
+        }
+      },
+      "CDR": {
+        "type": "object",
+        "properties": {
+          "cdr-callid": { "type": "string" },
+          "cdr-orig-user": { "type": "string" },
+          "cdr-orig-domain": { "type": "string" },
+          "cdr-term-user": { "type": "string" },
+          "cdr-term-domain": { "type": "string" },
+          "cdr-orig-callid": { "type": "string" },
+          "cdr-time-start": { "type": "string", "format": "date-time" },
+          "cdr-time-answer": { "type": "string", "format": "date-time" },
+          "cdr-time-release": { "type": "string", "format": "date-time" },
+          "cdr-duration": { "type": "integer" },
+          "cdr-answered": { "type": "string", "enum": ["yes", "no"] },
+          "cdr-direction": { "type": "string", "enum": ["inbound", "outbound", "internal"] },
+          "cdr-from-number": { "type": "string" },
+          "cdr-to-number": { "type": "string" },
+          "cdr-release-reason": { "type": "string" },
+          "cdr-recording": { "type": "string" }
+        }
+      },
+      "ActiveCall": {
+        "type": "object",
+        "properties": {
+          "callid": { "type": "string" },
+          "domain": { "type": "string" },
+          "user": { "type": "string" },
+          "call-direction": { "type": "string", "enum": ["inbound", "outbound", "internal"] },
+          "call-state": { "type": "string", "enum": ["ringing", "answered", "held", "transferring"] },
+          "call-duration": { "type": "integer" },
+          "call-from-number": { "type": "string" },
+          "call-to-number": { "type": "string" },
+          "call-from-name": { "type": "string" }
+        }
+      },
+      "MakeCall": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string", "description": "Número o usuario origen", "example": "1001" },
+          "to": { "type": "string", "description": "Número o usuario destino", "example": "15551234567" },
+          "caller-id-name": { "type": "string" },
+          "caller-id-number": { "type": "string" }
+        }
+      },
+      "MessageSessionCreate": {
+        "type": "object",
+        "required": ["to"],
+        "properties": {
+          "to": { "type": "string", "description": "Destinatario(s)" },
+          "from": { "type": "string" },
+          "type": { "type": "string", "enum": ["sms", "chat", "mms", "group-sms", "group-chat"] }
+        }
+      },
+      "SendMessage": {
+        "type": "object",
+        "required": ["body"],
+        "properties": {
+          "body": { "type": "string", "description": "Cuerpo del mensaje" },
+          "type": { "type": "string", "enum": ["sms", "chat", "mms"] },
+          "media-url": { "type": "string", "description": "URL del media para MMS" }
+        }
+      },
+      "Contact": {
+        "type": "object",
+        "properties": {
+          "contact-id": { "type": "string" },
+          "contact-first-name": { "type": "string" },
+          "contact-last-name": { "type": "string" },
+          "contact-company": { "type": "string" },
+          "contact-email": { "type": "string", "format": "email" },
+          "contact-phone-work": { "type": "string" },
+          "contact-phone-mobile": { "type": "string" },
+          "contact-phone-home": { "type": "string" }
+        }
+      },
+      "ContactCreate": {
+        "type": "object",
+        "properties": {
+          "contact-first-name": { "type": "string" },
+          "contact-last-name": { "type": "string" },
+          "contact-company": { "type": "string" },
+          "contact-email": { "type": "string", "format": "email" },
+          "contact-phone-work": { "type": "string" },
+          "contact-phone-mobile": { "type": "string" }
+        }
+      },
+      "Connection": {
+        "type": "object",
+        "properties": {
+          "connection": { "type": "string" },
+          "domain": { "type": "string" },
+          "description": { "type": "string" },
+          "connection-address": { "type": "string" },
+          "dial-plan": { "type": "string" },
+          "dial-policy": { "type": "string" },
+          "connection-orig-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "connection-term-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "connection-audio-relay-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "connection-orig-match-pattern": { "type": "string" },
+          "connection-term-match-pattern": { "type": "string" },
+          "limits-max-active-calls-orig": { "type": "integer" },
+          "limits-max-active-calls-term": { "type": "integer" },
+          "limits-max-active-calls-total": { "type": "integer" },
+          "connection-sip-registration-username": { "type": "string" },
+          "connection-sip-registration-password": { "type": "string" },
+          "connection-sip-registration-realm": { "type": "string" },
+          "connection-source-ip-checking-enabled": { "type": "string", "enum": ["yes", "no"] }
+        }
+      },
+      "EventSubscription": {
+        "type": "object",
+        "properties": {
+          "subscription-id": { "type": "string" },
+          "subscription-url": { "type": "string", "format": "uri" },
+          "subscription-events": { "type": "array", "items": { "type": "string" } },
+          "subscription-domain": { "type": "string" },
+          "subscription-user": { "type": "string" },
+          "subscription-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "subscription-secret": { "type": "string" }
+        }
+      },
+      "EventSubscriptionCreate": {
+        "type": "object",
+        "required": ["subscription-url", "subscription-events"],
+        "properties": {
+          "subscription-url": { "type": "string", "format": "uri", "example": "https://yourwebhook.example.com/ns-events" },
+          "subscription-events": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["call.answered", "call.released", "voicemail.new"]
+          },
+          "subscription-enabled": { "type": "string", "enum": ["yes", "no"], "default": "yes" },
+          "subscription-secret": { "type": "string" }
+        }
+      },
+      "Site": {
+        "type": "object",
+        "properties": {
+          "site": { "type": "string" },
+          "domain": { "type": "string" },
+          "site-description": { "type": "string" },
+          "site-address": { "type": "string" },
+          "site-city": { "type": "string" },
+          "site-state": { "type": "string" },
+          "site-zip": { "type": "string" },
+          "site-country": { "type": "string" },
+          "site-e911-enabled": { "type": "string", "enum": ["yes", "no"] }
+        }
+      },
+      "SiteCreate": {
+        "type": "object",
+        "required": ["site"],
+        "properties": {
+          "site": { "type": "string" },
+          "site-description": { "type": "string" },
+          "site-address": { "type": "string" },
+          "site-city": { "type": "string" },
+          "site-state": { "type": "string" },
+          "site-zip": { "type": "string" },
+          "site-country": { "type": "string" }
+        }
+      },
+      "Config": {
+        "type": "object",
+        "properties": {
+          "config-name": { "type": "string" },
+          "config-scope": { "type": "string" },
+          "config-value": { "type": "string" },
+          "config-object": { "type": "string" }
+        }
+      },
+      "Dialplan": {
+        "type": "object",
+        "properties": {
+          "dialplan": { "type": "string" },
+          "domain": { "type": "string" },
+          "dialplan-description": { "type": "string" }
+        }
+      },
+      "Dialrule": {
+        "type": "object",
+        "properties": {
+          "dialrule-id": { "type": "string" },
+          "dialplan": { "type": "string" },
+          "dialrule-match": { "type": "string" },
+          "dialrule-dest": { "type": "string" },
+          "dialrule-dest-type": { "type": "string", "enum": ["server", "domain", "user", "offnet"] },
+          "dialrule-enabled": { "type": "string", "enum": ["yes", "no"] },
+          "dialrule-order": { "type": "integer" }
+        }
+      },
+      "Route": {
+        "type": "object",
+        "properties": {
+          "route": { "type": "string" },
+          "route-description": { "type": "string" },
+          "route-enabled": { "type": "string", "enum": ["yes", "no"] }
+        }
+      },
+      "MeetingCreate": {
+        "type": "object",
+        "properties": {
+          "meeting-title": { "type": "string" },
+          "meeting-description": { "type": "string" },
+          "meeting-start-time": { "type": "string", "format": "date-time" },
+          "meeting-duration": { "type": "integer", "description": "Duración en minutos" },
+          "meeting-host": { "type": "string" }
+        }
+      },
+      "MacAddress": {
+        "type": "object",
+        "properties": {
+          "mac": { "type": "string", "example": "AABBCCDDEEFF" },
+          "domain": { "type": "string" },
+          "user": { "type": "string" },
+          "mac-model": { "type": "string" },
+          "mac-vendor": { "type": "string" },
+          "mac-description": { "type": "string" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "integer", "example": 404 },
+          "message": { "type": "string", "example": "Resource not found" }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "No autorizado — token inválido o expirado",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "NotFound": {
+        "description": "Recurso no encontrado",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "BadRequest": {
+        "description": "Solicitud inválida",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      }
+    }
+  }
+}
